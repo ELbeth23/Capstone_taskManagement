@@ -172,8 +172,8 @@
                 if (response.ok) {
                     localStorage.setItem('access_token', result.access);
                     localStorage.setItem('refresh_token', result.refresh);
-                    showMessage('Registration successful! Redirecting to login...', 'success');
-                    setTimeout(() => window.location.href = '/login', 1500);
+                    showMessage('Registration successful! Redirecting...', 'success');
+                    setTimeout(() => window.location.href = '/tasks', 1500);
                 } else {
                     const errors = Object.values(result).flat().join(' ');
                     showMessage(errors, 'error');
