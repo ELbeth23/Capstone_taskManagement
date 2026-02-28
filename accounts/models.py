@@ -13,6 +13,9 @@ class UserPreferences(models.Model):
     task_reminders = models.BooleanField(default=True)
     daily_summary = models.BooleanField(default=False)
     
+    # Appearance settings
+    dark_mode = models.BooleanField(default=False)
+    
     # Default task settings
     default_priority = models.CharField(
         max_length=10,

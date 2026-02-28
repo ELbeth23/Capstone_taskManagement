@@ -66,7 +66,7 @@ class UserPreferencesSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserPreferences
-        fields = ('email_notifications', 'task_reminders', 'daily_summary', 'default_priority', 'profile_image', 'profile_image_url')
+        fields = ('email_notifications', 'task_reminders', 'daily_summary', 'dark_mode', 'default_priority', 'profile_image', 'profile_image_url')
         extra_kwargs = {
             'profile_image': {'write_only': True, 'required': False}
         }
