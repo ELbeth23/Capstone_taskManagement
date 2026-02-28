@@ -266,3 +266,54 @@ class TaskCalendarView(generics.GenericAPIView):
             'month': month,
             'tasks_by_date': tasks_by_date
         })
+
+
+class DailySummaryView(generics.GenericAPIView):
+    def get(self, request):
+        """Get daily summary data for dashboard display"""
+        tasks = Task.objects.filter(user=request.user)
+        
+        # Get today's date
+        today = timezone.now().date()
+        tomorrow = today + timedelta(days=1)
+        
+        # Tasks due today
+        tasks_today = tasks.filter(
+            due_date__date=today,
+            status='pending'
+        ).values('id', 'title', 'priority', 'due_date')
+        
+        # Tasks due tomorrow
+        tasks_tomorrow = tasks.filter(
+            due_date__date=tomorrow,
+            status='pending'
+        ).values('id', 'title', 'priority', 'due_date')
+        
+        # Overdue tasks
+        overdue_tasks = tasks.filter(
+            due_date__lt=timezone.now(),
+            status='pending'
+        ).values('id', 'title', 'priority', 'due_date')
+        
+        # Tasks completed today
+        completed_today = tasks.filter(
+            updated_at__date=today,
+            status='completed'
+        ).count()
+        
+        # Total pending tasks
+        total_pending = tasks.filter(status='pending').count()
+        
+        return Response({
+            'date': today.strftime('%B %d, %Y'),
+            'summary': {
+                'completed_today': completed_today,
+                'tasks_due_today': tasks_today.count(),
+                'tasks_due_tomorrow': tasks_tomorrow.count(),
+                'overdue_tasks': overdue_tasks.count(),
+                'total_pending': total_pending
+            },
+            'tasks_today': list(tasks_today),
+            'tasks_tomorrow': list(tasks_tomorrow),
+            'overdue_tasks': list(overdue_tasks[:5])  # Limit to 5
+        })

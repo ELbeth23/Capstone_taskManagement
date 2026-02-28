@@ -156,6 +156,113 @@
             margin-bottom: 30px;
         }
 
+        /* Daily Summary Section */
+        .daily-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .daily-summary h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .daily-summary .date {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .summary-stat {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-stat .number {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-stat .label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .summary-tasks {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-task-group {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .summary-task-group h3 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-task-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .summary-task-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-task-item .priority-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .summary-task-item .priority-badge.high {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .summary-task-item .priority-badge.medium {
+            background: rgba(255, 152, 0, 0.3);
+        }
+
+        .summary-task-item .priority-badge.low {
+            background: rgba(33, 150, 243, 0.3);
+        }
+
+        .summary-empty {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.8;
+        }
+
         /* Stats Cards */
         .stats-row {
             display: grid;
@@ -498,6 +605,33 @@
             <p>Welcome back! Here's your task overview</p>
         </div>
 
+        <!-- Daily Summary (Shows after 6 PM) -->
+        <div class="daily-summary" id="dailySummary" style="display: none;">
+            <h2><i class="fas fa-calendar-check"></i> Daily Summary</h2>
+            <div class="date" id="summaryDate"></div>
+
+            <div class="summary-stats">
+                <div class="summary-stat">
+                    <div class="number" id="summaryCompleted">0</div>
+                    <div class="label">Completed Today</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="number" id="summaryDueToday">0</div>
+                    <div class="label">Due Today</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="number" id="summaryDueTomorrow">0</div>
+                    <div class="label">Due Tomorrow</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="number" id="summaryOverdue">0</div>
+                    <div class="label">Overdue</div>
+                </div>
+            </div>
+
+            <div class="summary-tasks" id="summaryTasksContainer"></div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="quick-actions">
             <button class="btn-primary" onclick="openTaskModal()">
@@ -586,10 +720,97 @@
 
         async function loadDashboard() {
             await loadStats();
+            await loadDailySummary();  // Load daily summary
             await loadTodayTasks();
             await loadOverdueTasks();
             await loadUpcomingTasks();
             loadUserInfo();
+        }
+
+        async function loadDailySummary() {
+            // Check if current time is after 6 PM (18:00)
+            const now = new Date();
+            const currentHour = now.getHours();
+
+            if (currentHour < 18) {
+                // Hide daily summary before 6 PM
+                document.getElementById('dailySummary').style.display = 'none';
+                return;
+            }
+
+            // Show and load daily summary after 6 PM
+            try {
+                const response = await fetch(API_URL + 'daily-summary/', { headers: getAuthHeaders() });
+                if (response.status === 401) { window.location.href = '/login'; return; }
+                const data = await response.json();
+
+                // Update summary stats
+                document.getElementById('summaryDate').textContent = data.date;
+                document.getElementById('summaryCompleted').textContent = data.summary.completed_today;
+                document.getElementById('summaryDueToday').textContent = data.summary.tasks_due_today;
+                document.getElementById('summaryDueTomorrow').textContent = data.summary.tasks_due_tomorrow;
+                document.getElementById('summaryOverdue').textContent = data.summary.overdue_tasks;
+
+                // Build task groups HTML
+                let tasksHTML = '';
+
+                // Overdue tasks
+                if (data.overdue_tasks && data.overdue_tasks.length > 0) {
+                    tasksHTML += `
+                        <div class="summary-task-group">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Overdue Tasks</h3>
+                            ${data.overdue_tasks.map(task => `
+                                <div class="summary-task-item">
+                                    ${task.title}
+                                    <span class="priority-badge ${task.priority}">${task.priority}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // Tasks due today
+                if (data.tasks_today && data.tasks_today.length > 0) {
+                    tasksHTML += `
+                        <div class="summary-task-group">
+                            <h3><i class="fas fa-calendar-day"></i> Due Today</h3>
+                            ${data.tasks_today.map(task => `
+                                <div class="summary-task-item">
+                                    ${task.title}
+                                    <span class="priority-badge ${task.priority}">${task.priority}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // Tasks due tomorrow
+                if (data.tasks_tomorrow && data.tasks_tomorrow.length > 0) {
+                    tasksHTML += `
+                        <div class="summary-task-group">
+                            <h3><i class="fas fa-calendar-plus"></i> Due Tomorrow</h3>
+                            ${data.tasks_tomorrow.map(task => `
+                                <div class="summary-task-item">
+                                    ${task.title}
+                                    <span class="priority-badge ${task.priority}">${task.priority}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // If no tasks, show empty message
+                if (!tasksHTML) {
+                    tasksHTML = '<div class="summary-empty"><i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 10px;"></i><p>Great job! No urgent tasks at the moment.</p></div>';
+                }
+
+                document.getElementById('summaryTasksContainer').innerHTML = tasksHTML;
+                document.getElementById('dailySummary').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading daily summary:', error);
+                document.getElementById('dailySummary').style.display = 'none';
+            }
         }
 
         async function loadStats() {

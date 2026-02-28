@@ -8,11 +8,6 @@ class UserPreferences(models.Model):
     # Profile image
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     
-    # Notification preferences
-    email_notifications = models.BooleanField(default=False)
-    task_reminders = models.BooleanField(default=True)
-    daily_summary = models.BooleanField(default=False)
-    
     # Appearance settings
     dark_mode = models.BooleanField(default=False)
     
