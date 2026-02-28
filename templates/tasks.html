@@ -461,6 +461,8 @@
 </head>
 
 <body>
+    {% include 'notifications.html' %}
+
     <!-- Top Navigation Bar -->
     <nav class="topbar">
         <div class="topbar-content">
@@ -693,28 +695,50 @@
 
         async function completeTask(id) {
             try {
-                await fetch(API_URL + id + '/', {
+                const response = await fetch(API_URL + id + '/', {
                     method: 'PATCH',
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ status: 'completed' })
                 });
-                loadTasks();
+
+                if (response.ok) {
+                    Toast.success('Task marked as completed!', 'Success');
+                    loadTasks();
+                } else {
+                    Toast.error('Failed to complete task', 'Error');
+                }
             } catch (error) {
                 console.error('Error completing task:', error);
+                Toast.error('An error occurred while completing the task', 'Error');
             }
         }
 
         async function deleteTask(id) {
-            if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) return;
+            const confirmed = await Confirm.show({
+                title: 'Delete Task?',
+                message: 'Are you sure you want to delete this task? This action cannot be undone.',
+                type: 'danger',
+                confirmText: 'Delete',
+                cancelText: 'Cancel'
+            });
+
+            if (!confirmed) return;
 
             try {
-                await fetch(API_URL + id + '/', {
+                const response = await fetch(API_URL + id + '/', {
                     method: 'DELETE',
                     headers: getAuthHeaders()
                 });
-                loadTasks();
+
+                if (response.ok) {
+                    Toast.success('Task deleted successfully!', 'Deleted');
+                    loadTasks();
+                } else {
+                    Toast.error('Failed to delete task', 'Error');
+                }
             } catch (error) {
                 console.error('Error deleting task:', error);
+                Toast.error('An error occurred while deleting the task', 'Error');
             }
         }
 
@@ -741,10 +765,18 @@
 
                 if (response.ok) {
                     closeTaskModal();
+                    if (taskId) {
+                        Toast.success('Task updated successfully!', 'Updated');
+                    } else {
+                        Toast.success('Task created successfully!', 'Created');
+                    }
                     loadTasks();
+                } else {
+                    Toast.error('Failed to save task. Please check your input.', 'Error');
                 }
             } catch (error) {
                 console.error('Error saving task:', error);
+                Toast.error('An error occurred while saving the task', 'Error');
             }
         });
 
