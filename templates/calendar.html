@@ -147,6 +147,7 @@
         .calendar-nav {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
 
         .calendar-nav button {
@@ -157,10 +158,19 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
+            transition: background 0.3s;
         }
 
         .calendar-nav button:hover {
             background: #5568d3;
+        }
+
+        .calendar-nav .btn-today {
+            background: #764ba2;
+        }
+
+        .calendar-nav .btn-today:hover {
+            background: #653a8a;
         }
 
         /* Calendar Grid */
@@ -225,21 +235,29 @@
             overflow: hidden;
             text-overflow: ellipsis;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .day-task:hover {
+            transform: scale(1.05);
         }
 
         .day-task.high {
             background: #ffebee;
             color: #f44336;
+            border-left: 3px solid #f44336;
         }
 
         .day-task.medium {
             background: #fff3e0;
             color: #ff9800;
+            border-left: 3px solid #ff9800;
         }
 
         .day-task.low {
             background: #e3f2fd;
             color: #2196f3;
+            border-left: 3px solid #2196f3;
         }
 
         .day-task.completed {
@@ -247,32 +265,40 @@
             text-decoration: line-through;
         }
 
-        /* Coming Soon Message */
-        .coming-soon {
+        .task-count {
+            font-size: 10px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        /* Loading State */
+        .loading {
             text-align: center;
-            padding: 80px 20px;
-        }
-
-        .coming-soon i {
-            font-size: 80px;
+            padding: 60px;
             color: #667eea;
-            margin-bottom: 20px;
         }
 
-        .coming-soon h2 {
-            font-size: 32px;
-            color: #333;
-            margin-bottom: 10px;
+        .loading i {
+            font-size: 48px;
+            animation: spin 1s linear infinite;
         }
 
-        .coming-soon p {
-            color: #666;
-            font-size: 18px;
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 
 <body>
+    <!-- Include Notifications -->
+    {% include 'notifications.html' %}
+
     <!-- Top Navigation Bar -->
     <nav class="topbar">
         <div class="topbar-content">
@@ -311,15 +337,40 @@
         </div>
 
         <div class="calendar-container">
-            <div class="coming-soon">
-                <i class="fas fa-calendar-alt"></i>
-                <h2>Calendar View Coming Soon</h2>
-                <p>We're working on an interactive calendar to help you visualize and plan your tasks better.</p>
+            <div class="calendar-header">
+                <h2 id="currentMonth">Loading...</h2>
+                <div class="calendar-nav">
+                    <button onclick="previousMonth()">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <button class="btn-today" onclick="goToToday()">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                    <button onclick="nextMonth()">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="calendarContent" class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>Loading calendar...</p>
             </div>
         </div>
     </div>
 
     <script>
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+        let tasksData = {};
+
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
         function logout() {
             localStorage.clear();
             window.location.href = '/login';
@@ -330,7 +381,164 @@
             document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
         }
 
+        async function loadCalendar() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/tasks/calendar/?year=${currentYear}&month=${currentMonth}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    tasksData = data.tasks_by_date;
+                    renderCalendar();
+                } else if (response.status === 401) {
+                    Toast.error('Session expired. Please login again.');
+                    setTimeout(() => window.location.href = '/login', 2000);
+                } else {
+                    Toast.error('Failed to load calendar');
+                }
+            } catch (error) {
+                console.error('Error loading calendar:', error);
+                Toast.error('Failed to load calendar');
+            }
+        }
+
+        function renderCalendar() {
+            // Update header
+            document.getElementById('currentMonth').textContent =
+                `${monthNames[currentMonth - 1]} ${currentYear}`;
+
+            // Calculate calendar grid
+            const firstDay = new Date(currentYear, currentMonth - 1, 1);
+            const lastDay = new Date(currentYear, currentMonth, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+
+            // Get previous month's last days
+            const prevMonthLastDay = new Date(currentYear, currentMonth - 1, 0).getDate();
+            const prevMonthDays = startingDayOfWeek;
+
+            // Calculate total cells needed
+            const totalCells = Math.ceil((daysInMonth + startingDayOfWeek) / 7) * 7;
+            const nextMonthDays = totalCells - daysInMonth - prevMonthDays;
+
+            // Build calendar HTML
+            let calendarHTML = '<div class="calendar-grid">';
+
+            // Day headers
+            dayNames.forEach(day => {
+                calendarHTML += `<div class="calendar-day-header">${day}</div>`;
+            });
+
+            // Previous month days
+            for (let i = prevMonthDays - 1; i >= 0; i--) {
+                const day = prevMonthLastDay - i;
+                calendarHTML += `<div class="calendar-day other-month">
+                    <div class="day-number">${day}</div>
+                </div>`;
+            }
+
+            // Current month days
+            const today = new Date();
+            const isCurrentMonth = today.getFullYear() === currentYear &&
+                today.getMonth() + 1 === currentMonth;
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = isCurrentMonth && today.getDate() === day;
+                const dayTasks = tasksData[dateKey] || [];
+
+                calendarHTML += `<div class="calendar-day ${isToday ? 'today' : ''}" onclick="viewDayTasks('${dateKey}')">
+                    <div class="day-number">${day}</div>
+                    <div class="day-tasks">`;
+
+                // Show up to 3 tasks
+                const visibleTasks = dayTasks.slice(0, 3);
+                visibleTasks.forEach(task => {
+                    const completedClass = task.status === 'completed' ? 'completed' : '';
+                    calendarHTML += `<div class="day-task ${task.priority} ${completedClass}" 
+                                          onclick="event.stopPropagation(); viewTask(${task.id})" 
+                                          title="${task.title}">
+                        ${task.title}
+                    </div>`;
+                });
+
+                if (dayTasks.length > 3) {
+                    calendarHTML += `<div class="task-count">+${dayTasks.length - 3} more</div>`;
+                }
+
+                calendarHTML += `</div></div>`;
+            }
+
+            // Next month days
+            for (let day = 1; day <= nextMonthDays; day++) {
+                calendarHTML += `<div class="calendar-day other-month">
+                    <div class="day-number">${day}</div>
+                </div>`;
+            }
+
+            calendarHTML += '</div>';
+
+            document.getElementById('calendarContent').innerHTML = calendarHTML;
+        }
+
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            loadCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            }
+            loadCalendar();
+        }
+
+        function goToToday() {
+            const today = new Date();
+            currentYear = today.getFullYear();
+            currentMonth = today.getMonth() + 1;
+            loadCalendar();
+        }
+
+        function viewDayTasks(dateKey) {
+            const tasks = tasksData[dateKey] || [];
+            if (tasks.length === 0) {
+                Toast.info('No tasks scheduled for this day');
+                return;
+            }
+
+            let message = `Tasks for ${dateKey}:\n\n`;
+            tasks.forEach((task, index) => {
+                const status = task.status === 'completed' ? '✓' : '○';
+                message += `${status} ${task.title} [${task.priority}]\n`;
+            });
+
+            alert(message);
+        }
+
+        function viewTask(taskId) {
+            // Redirect to tasks page with the task highlighted
+            window.location.href = `/tasks?highlight=${taskId}`;
+        }
+
+        // Initialize
         loadUserInfo();
+        loadCalendar();
     </script>
 </body>
 

@@ -73,3 +73,196 @@ class TaskSummaryView(generics.GenericAPIView):
             "pending_tasks": pending,
             "overdue_tasks": overdue
         })
+
+
+class TaskAnalyticsView(generics.GenericAPIView):
+    def get(self, request):
+        tasks = Task.objects.filter(user=request.user)
+
+        # Weekly performance (last 7 days)
+        today = timezone.now().date()
+        weekly_data = []
+        for i in range(6, -1, -1):
+            date = today - timedelta(days=i)
+            completed = tasks.filter(
+                status='completed',
+                updated_at__date=date
+            ).count()
+            created = tasks.filter(created_at__date=date).count()
+            weekly_data.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'completed': completed,
+                'created': created
+            })
+
+        # Priority distribution
+        priority_dist = {
+            'high': tasks.filter(priority='high').count(),
+            'medium': tasks.filter(priority='medium').count(),
+            'low': tasks.filter(priority='low').count()
+        }
+
+        # Status distribution
+        status_dist = {
+            'completed': tasks.filter(status='completed').count(),
+            'pending': tasks.filter(status='pending').count()
+        }
+
+        # Completion rate (last 30 days)
+        thirty_days_ago = today - timedelta(days=30)
+        recent_tasks = tasks.filter(created_at__date__gte=thirty_days_ago)
+        total_recent = recent_tasks.count()
+        completed_recent = recent_tasks.filter(status='completed').count()
+        completion_rate = (completed_recent / total_recent * 100) if total_recent > 0 else 0
+
+        # Productivity score (0-100)
+        overdue = tasks.filter(due_date__lt=timezone.now(), status='pending').count()
+        total = tasks.count()
+        productivity_score = max(0, 100 - (overdue * 10)) if total > 0 else 0
+
+        return Response({
+            'weekly_performance': weekly_data,
+            'priority_distribution': priority_dist,
+            'status_distribution': status_dist,
+            'completion_rate': round(completion_rate, 1),
+            'productivity_score': min(100, productivity_score)
+        })
+
+
+class TaskCalendarView(generics.GenericAPIView):
+    def get(self, request):
+        # Get year and month from query params, default to current
+        year = int(request.query_params.get('year', timezone.now().year))
+        month = int(request.query_params.get('month', timezone.now().month))
+
+        # Get first and last day of the month
+        first_day = datetime(year, month, 1)
+        if month == 12:
+            last_day = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = datetime(year, month + 1, 1) - timedelta(days=1)
+
+        # Get all tasks for the user in this month
+        tasks = Task.objects.filter(
+            user=request.user,
+            due_date__gte=first_day,
+            due_date__lte=last_day
+        ).order_by('due_date')
+
+        # Group tasks by date
+        tasks_by_date = {}
+        for task in tasks:
+            date_key = task.due_date.strftime('%Y-%m-%d')
+            if date_key not in tasks_by_date:
+                tasks_by_date[date_key] = []
+
+            tasks_by_date[date_key].append({
+                'id': task.id,
+                'title': task.title,
+                'priority': task.priority,
+                'status': task.status,
+                'due_date': task.due_date.isoformat()
+            })
+
+        return Response({
+            'year': year,
+            'month': month,
+            'tasks_by_date': tasks_by_date
+        })
+
+
+
+class TaskAnalyticsView(generics.GenericAPIView):
+    def get(self, request):
+        tasks = Task.objects.filter(user=request.user)
+        
+        # Weekly performance (last 7 days)
+        today = timezone.now().date()
+        weekly_data = []
+        for i in range(6, -1, -1):
+            date = today - timedelta(days=i)
+            completed = tasks.filter(
+                status='completed',
+                updated_at__date=date
+            ).count()
+            created = tasks.filter(created_at__date=date).count()
+            weekly_data.append({
+                'date': date.strftime('%Y-%m-%d'),
+                'completed': completed,
+                'created': created
+            })
+        
+        # Priority distribution
+        priority_dist = {
+            'high': tasks.filter(priority='high').count(),
+            'medium': tasks.filter(priority='medium').count(),
+            'low': tasks.filter(priority='low').count()
+        }
+        
+        # Status distribution
+        status_dist = {
+            'completed': tasks.filter(status='completed').count(),
+            'pending': tasks.filter(status='pending').count()
+        }
+        
+        # Completion rate (last 30 days)
+        thirty_days_ago = today - timedelta(days=30)
+        recent_tasks = tasks.filter(created_at__date__gte=thirty_days_ago)
+        total_recent = recent_tasks.count()
+        completed_recent = recent_tasks.filter(status='completed').count()
+        completion_rate = (completed_recent / total_recent * 100) if total_recent > 0 else 0
+        
+        # Productivity score (0-100)
+        overdue = tasks.filter(due_date__lt=timezone.now(), status='pending').count()
+        total = tasks.count()
+        productivity_score = max(0, 100 - (overdue * 10)) if total > 0 else 0
+        
+        return Response({
+            'weekly_performance': weekly_data,
+            'priority_distribution': priority_dist,
+            'status_distribution': status_dist,
+            'completion_rate': round(completion_rate, 1),
+            'productivity_score': min(100, productivity_score)
+        })
+
+
+class TaskCalendarView(generics.GenericAPIView):
+    def get(self, request):
+        # Get year and month from query params, default to current
+        year = int(request.query_params.get('year', timezone.now().year))
+        month = int(request.query_params.get('month', timezone.now().month))
+        
+        # Get first and last day of the month
+        first_day = datetime(year, month, 1)
+        if month == 12:
+            last_day = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            last_day = datetime(year, month + 1, 1) - timedelta(days=1)
+        
+        # Get all tasks for the user in this month
+        tasks = Task.objects.filter(
+            user=request.user,
+            due_date__gte=first_day,
+            due_date__lte=last_day
+        ).order_by('due_date')
+        
+        # Group tasks by date
+        tasks_by_date = {}
+        for task in tasks:
+            date_key = task.due_date.strftime('%Y-%m-%d')
+            if date_key not in tasks_by_date:
+                tasks_by_date[date_key] = []
+            
+            tasks_by_date[date_key].append({
+                'id': task.id,
+                'title': task.title,
+                'priority': task.priority,
+                'status': task.status,
+                'due_date': task.due_date.isoformat()
+            })
+        
+        return Response({
+            'year': year,
+            'month': month,
+            'tasks_by_date': tasks_by_date
+        })
