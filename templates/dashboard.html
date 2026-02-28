@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tasks - Task Manager</title>
+    <title>Dashboard - Task Manager</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -112,14 +112,21 @@
 
         .page-header {
             margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .page-header h1 {
             font-size: 32px;
             color: #333;
+            margin-bottom: 5px;
+        }
+
+        .page-header p {
+            color: #666;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            margin-bottom: 30px;
         }
 
         .btn-primary {
@@ -133,117 +140,149 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 14px;
         }
 
         .btn-primary:hover {
             background: #5568d3;
         }
 
-        /* Filters */
-        .filters {
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
             background: white;
-            padding: 20px;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-card .icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card.total .icon {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .stat-card.completed .icon {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .stat-card.pending .icon {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .stat-card.overdue .icon {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Task Sections */
+        .task-section {
+            background: white;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            align-items: center;
         }
 
-        .filter-group {
+        .task-section h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .filter-group label {
-            font-weight: 600;
-            color: #555;
+        .task-section h2 i {
+            color: #667eea;
         }
 
-        .filter-group select,
-        .filter-group input {
-            padding: 10px 15px;
-            border: 1px solid #ddd;
+        /* Task List */
+        .task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
+            padding: 16px;
+            border: 1px solid #e0e0e0;
             border-radius: 8px;
-            background: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
             cursor: pointer;
         }
 
-        .search-box {
-            flex: 1;
-            min-width: 250px;
-            position: relative;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 10px 15px 10px 40px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-        }
-
-        /* Task Grid */
-        .task-grid {
-            display: grid;
-            gap: 15px;
-        }
-
-        .task-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s;
-            border-left: 4px solid #e0e0e0;
-        }
-
-        .task-card:hover {
+        .task-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
-        .task-card.high {
-            border-left-color: #f44336;
+        .task-item-left {
+            flex: 1;
         }
 
-        .task-card.medium {
-            border-left-color: #ff9800;
-        }
-
-        .task-card.low {
-            border-left-color: #2196f3;
-        }
-
-        .task-card.completed {
-            opacity: 0.7;
-        }
-
-        .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 12px;
-        }
-
-        .task-title {
-            font-size: 18px;
+        .task-item-title {
             font-weight: 600;
             color: #333;
-            flex: 1;
+            margin-bottom: 5px;
         }
 
-        .task-actions {
+        .task-item-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .task-item-meta i {
+            margin-right: 5px;
+        }
+
+        .task-item-actions {
             display: flex;
             gap: 8px;
         }
@@ -255,7 +294,6 @@
             cursor: pointer;
             color: #666;
             border-radius: 5px;
-            font-size: 16px;
         }
 
         .btn-icon:hover {
@@ -271,34 +309,7 @@
             background: #e8f5e9;
         }
 
-        .btn-delete {
-            color: #f44336;
-        }
-
-        .btn-delete:hover {
-            background: #ffebee;
-        }
-
-        .task-description {
-            color: #666;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-
-        .task-meta {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            font-size: 13px;
-            color: #666;
-        }
-
-        .task-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
+        /* Priority Badge */
         .priority {
             padding: 4px 10px;
             border-radius: 12px;
@@ -322,40 +333,26 @@
             color: #2196f3;
         }
 
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-badge.pending {
-            background: #fff3e0;
-            color: #ff9800;
-        }
-
-        .status-badge.completed {
-            background: #e8f5e9;
-            color: #4caf50;
-        }
-
         /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 80px 20px;
+            padding: 60px 20px;
             color: #999;
         }
 
         .empty-state i {
-            font-size: 80px;
+            font-size: 64px;
             margin-bottom: 20px;
             opacity: 0.3;
         }
 
         .empty-state h3 {
-            font-size: 24px;
+            font-size: 20px;
             margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
         }
 
         /* Modal */
@@ -469,10 +466,10 @@
                 <span>Task Manager</span>
             </div>
             <div class="nav-menu">
-                <a href="/dashboard" class="nav-item">
+                <a href="/dashboard" class="nav-item active">
                     <i class="fas fa-home"></i> Dashboard
                 </a>
-                <a href="/tasks" class="nav-item active">
+                <a href="/tasks" class="nav-item">
                     <i class="fas fa-list-check"></i> Tasks
                 </a>
                 <a href="/calendar" class="nav-item">
@@ -494,39 +491,40 @@
     <!-- Main Content -->
     <div class="container">
         <div class="page-header">
-            <h1>All Tasks</h1>
+            <h1>Dashboard</h1>
+            <p>Welcome back! Here's your task overview</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
             <button class="btn-primary" onclick="openTaskModal()">
-                <i class="fas fa-plus"></i> New Task
+                <i class="fas fa-plus"></i> Quick Add Task
             </button>
         </div>
 
-        <!-- Filters -->
-        <div class="filters">
-            <div class="search-box">
-                <i class="fas fa-search"></i>
-                <input type="text" id="searchInput" placeholder="Search tasks..." onkeyup="filterTasks()">
+        <!-- Stats Row -->
+        <div class="stats-row" id="statsRow"></div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Today's Tasks -->
+            <div class="task-section">
+                <h2><i class="fas fa-calendar-day"></i> Today's Tasks</h2>
+                <div class="task-list" id="todayTasks"></div>
             </div>
-            <div class="filter-group">
-                <label>Status:</label>
-                <select id="statusFilter" onchange="loadTasks()">
-                    <option value="">All</option>
-                    <option value="pending">Pending</option>
-                    <option value="completed">Completed</option>
-                </select>
+
+            <!-- Overdue Tasks -->
+            <div class="task-section">
+                <h2><i class="fas fa-exclamation-triangle"></i> Overdue</h2>
+                <div class="task-list" id="overdueTasks"></div>
             </div>
-            <div class="filter-group">
-                <label>Priority:</label>
-                <select id="priorityFilter" onchange="loadTasks()">
-                    <option value="">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                </select>
+
+            <!-- Upcoming Tasks -->
+            <div class="task-section">
+                <h2><i class="fas fa-clock"></i> Upcoming</h2>
+                <div class="task-list" id="upcomingTasks"></div>
             </div>
         </div>
-
-        <!-- Task Grid -->
-        <div class="task-grid" id="taskGrid"></div>
     </div>
 
     <!-- Task Modal -->
@@ -570,7 +568,6 @@
 
     <script>
         const API_URL = '/api/tasks/';
-        let allTasks = [];
 
         function getAuthHeaders() {
             const token = localStorage.getItem('access_token');
@@ -584,83 +581,105 @@
             };
         }
 
-        async function loadTasks() {
-            const status = document.getElementById('statusFilter').value;
-            const priority = document.getElementById('priorityFilter').value;
+        async function loadDashboard() {
+            await loadStats();
+            await loadTodayTasks();
+            await loadOverdueTasks();
+            await loadUpcomingTasks();
+            loadUserInfo();
+        }
 
-            let url = API_URL;
-            const params = new URLSearchParams();
-            if (status) params.append('status', status);
-            if (priority) params.append('priority', priority);
-            if (params.toString()) url += '?' + params.toString();
-
+        async function loadStats() {
             try {
-                const response = await fetch(url, { headers: getAuthHeaders() });
+                const response = await fetch(API_URL + 'summary/', { headers: getAuthHeaders() });
                 if (response.status === 401) { window.location.href = '/login'; return; }
-                allTasks = await response.json();
-                displayTasks(allTasks);
+                const data = await response.json();
+
+                document.getElementById('statsRow').innerHTML = `
+                    <div class="stat-card total">
+                        <div class="icon"><i class="fas fa-tasks"></i></div>
+                        <h3>Total Tasks</h3>
+                        <div class="number">${data.total_tasks}</div>
+                    </div>
+                    <div class="stat-card completed">
+                        <div class="icon"><i class="fas fa-check-circle"></i></div>
+                        <h3>Completed</h3>
+                        <div class="number">${data.completed_tasks}</div>
+                    </div>
+                    <div class="stat-card pending">
+                        <div class="icon"><i class="fas fa-clock"></i></div>
+                        <h3>Pending</h3>
+                        <div class="number">${data.pending_tasks}</div>
+                    </div>
+                    <div class="stat-card overdue">
+                        <div class="icon"><i class="fas fa-exclamation-circle"></i></div>
+                        <h3>Overdue</h3>
+                        <div class="number">${data.overdue_tasks}</div>
+                    </div>
+                `;
             } catch (error) {
-                console.error('Error loading tasks:', error);
+                console.error('Error loading stats:', error);
             }
         }
 
-        function displayTasks(tasks) {
-            const grid = document.getElementById('taskGrid');
-            if (tasks.length === 0) {
-                grid.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>No tasks found</h3><p>Create your first task to get started!</p></div>';
-                return;
-            }
+        async function loadTodayTasks() {
+            const today = new Date().toISOString().split('T')[0];
+            await loadTasksForSection('todayTasks', `?due_date=${today}&status=pending`);
+        }
 
-            grid.innerHTML = tasks.map(task => `
-                <div class="task-card ${task.priority} ${task.status}">
-                    <div class="task-header">
-                        <div class="task-title">${escapeHtml(task.title)}</div>
-                        <div class="task-actions">
-                            ${task.status === 'pending' ? `
-                                <button class="btn-icon btn-complete" onclick="completeTask(${task.id})" title="Mark as complete">
-                                    <i class="fas fa-check-circle"></i>
-                                </button>
-                            ` : ''}
+        async function loadOverdueTasks() {
+            await loadTasksForSection('overdueTasks', '?overdue=true&status=pending');
+        }
+
+        async function loadUpcomingTasks() {
+            await loadTasksForSection('upcomingTasks', '?upcoming=true&status=pending');
+        }
+
+        async function loadTasksForSection(sectionId, queryParams) {
+            try {
+                const response = await fetch(API_URL + queryParams, { headers: getAuthHeaders() });
+                if (response.status === 401) { window.location.href = '/login'; return; }
+                const tasks = await response.json();
+
+                const section = document.getElementById(sectionId);
+                if (tasks.length === 0) {
+                    section.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No tasks</p></div>';
+                    return;
+                }
+
+                section.innerHTML = tasks.slice(0, 5).map(task => `
+                    <div class="task-item">
+                        <div class="task-item-left">
+                            <div class="task-item-title">${escapeHtml(task.title)}</div>
+                            <div class="task-item-meta">
+                                <span class="priority ${task.priority}">${task.priority}</span>
+                                ${task.due_date ? `<span><i class="fas fa-calendar"></i>${new Date(task.due_date).toLocaleDateString()}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="task-item-actions">
+                            <button class="btn-icon btn-complete" onclick="completeTask(${task.id})" title="Mark as complete">
+                                <i class="fas fa-check"></i>
+                            </button>
                             <button class="btn-icon" onclick="editTask(${task.id})" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-icon btn-delete" onclick="deleteTask(${task.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
                         </div>
                     </div>
-                    ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
-                    <div class="task-meta">
-                        <span class="priority ${task.priority}">${task.priority}</span>
-                        <span class="status-badge ${task.status}">${task.status}</span>
-                        ${task.due_date ? `
-                            <span class="task-meta-item">
-                                <i class="fas fa-calendar"></i>
-                                ${new Date(task.due_date).toLocaleString()}
-                            </span>
-                        ` : ''}
-                        <span class="task-meta-item">
-                            <i class="fas fa-clock"></i>
-                            Created ${new Date(task.created_at).toLocaleDateString()}
-                        </span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function filterTasks() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allTasks.filter(task =>
-                task.title.toLowerCase().includes(searchTerm) ||
-                (task.description && task.description.toLowerCase().includes(searchTerm))
-            );
-            displayTasks(filtered);
+                `).join('');
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
         }
 
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function loadUserInfo() {
+            const username = localStorage.getItem('username') || 'User';
+            document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
         }
 
         function openTaskModal() {
@@ -698,23 +717,9 @@
                     headers: getAuthHeaders(),
                     body: JSON.stringify({ status: 'completed' })
                 });
-                loadTasks();
+                loadDashboard();
             } catch (error) {
                 console.error('Error completing task:', error);
-            }
-        }
-
-        async function deleteTask(id) {
-            if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) return;
-
-            try {
-                await fetch(API_URL + id + '/', {
-                    method: 'DELETE',
-                    headers: getAuthHeaders()
-                });
-                loadTasks();
-            } catch (error) {
-                console.error('Error deleting task:', error);
             }
         }
 
@@ -741,7 +746,7 @@
 
                 if (response.ok) {
                     closeTaskModal();
-                    loadTasks();
+                    loadDashboard();
                 }
             } catch (error) {
                 console.error('Error saving task:', error);
@@ -753,19 +758,13 @@
             window.location.href = '/login';
         }
 
-        function loadUserInfo() {
-            const username = localStorage.getItem('username') || 'User';
-            document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
-        }
-
         // Close modal on outside click
         document.getElementById('taskModal').addEventListener('click', (e) => {
             if (e.target.id === 'taskModal') closeTaskModal();
         });
 
-        // Load tasks on page load
-        loadUserInfo();
-        loadTasks();
+        // Load dashboard on page load
+        loadDashboard();
     </script>
 </body>
 

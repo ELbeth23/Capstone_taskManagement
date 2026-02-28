@@ -172,8 +172,9 @@
                 if (response.ok) {
                     localStorage.setItem('access_token', result.access);
                     localStorage.setItem('refresh_token', result.refresh);
+                    localStorage.setItem('username', data.username);
                     showMessage('Registration successful! Redirecting...', 'success');
-                    setTimeout(() => window.location.href = '/tasks', 1500);
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
                 } else {
                     const errors = Object.values(result).flat().join(' ');
                     showMessage(errors, 'error');
