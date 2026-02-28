@@ -553,7 +553,7 @@
                     <label>Priority</label>
                     <select id="priority">
                         <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
+                        <option value="medium">Medium</option>
                         <option value="high">High</option>
                     </select>
                 </div>
@@ -671,6 +671,44 @@
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'Create New Task';
+
+            // Set minimum date to current date and time
+            setMinimumDueDate();
+
+            // Set default priority from user preferences
+            loadDefaultPriority();
+        }
+
+        async function loadDefaultPriority() {
+            try {
+                const response = await fetch('/api/auth/preferences/', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('priority').value = data.default_priority || 'medium';
+                }
+            } catch (error) {
+                console.error('Error loading default priority:', error);
+                // Fallback to medium if error
+                document.getElementById('priority').value = 'medium';
+            }
+        }
+
+        function setMinimumDueDate() {
+            const now = new Date();
+            // Format: YYYY-MM-DDTHH:MM
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            document.getElementById('due_date').min = minDateTime;
         }
 
         function closeTaskModal() {
@@ -688,6 +726,10 @@
                 document.getElementById('priority').value = task.priority;
                 document.getElementById('due_date').value = task.due_date ? task.due_date.slice(0, 16) : '';
                 document.getElementById('modalTitle').textContent = 'Edit Task';
+
+                // Set minimum date to current date and time
+                setMinimumDueDate();
+
                 document.getElementById('taskModal').style.display = 'flex';
             } catch (error) {
                 console.error('Error loading task:', error);
@@ -773,7 +815,12 @@
                     }
                     loadTasks();
                 } else {
-                    Toast.error('Failed to save task. Please check your input.', 'Error');
+                    const error = await response.json();
+                    if (error.due_date) {
+                        Toast.error(error.due_date[0], 'Invalid Date');
+                    } else {
+                        Toast.error('Failed to save task. Please check your input.', 'Error');
+                    }
                 }
             } catch (error) {
                 console.error('Error saving task:', error);
