@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Task Manager</title>
+    <title>Dashboard - TaskFlow</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     {% include 'dark-mode.html' %}
     <style>
@@ -119,6 +119,10 @@
             font-size: 32px;
             color: #333;
             margin-bottom: 5px;
+        }
+
+        .page-header h1 .user-name {
+            color: #667eea;
         }
 
         .page-header p {
@@ -712,6 +716,39 @@
             min-height: 100px;
         }
 
+        /* Validation Warning Styles */
+        .validation-warning {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .validation-warning.show {
+            display: block;
+        }
+
+        .form-group input.invalid,
+        .form-group textarea.invalid {
+            border-color: #e74c3c;
+        }
+
+        .form-group input.valid,
+        .form-group textarea.valid {
+            border-color: #27ae60;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
         .form-actions {
             display: flex;
             gap: 10px;
@@ -746,8 +783,8 @@
     <nav class="topbar">
         <div class="topbar-content">
             <div class="logo">
-                <i class="fas fa-tasks"></i>
-                <span>Task Manager</span>
+                <i class="fas fa-stream"></i>
+                <span>TaskFlow</span>
             </div>
             <div class="nav-menu">
                 <a href="/dashboard" class="nav-item active">
@@ -775,8 +812,8 @@
     <!-- Main Content -->
     <div class="container">
         <div class="page-header">
-            <h1>Dashboard</h1>
-            <p>Welcome back! Here's your task overview</p>
+            <h1 id="welcomeMessage">Welcome, <span class="user-name">User</span></h1>
+            <p>Here's your task overview</p>
         </div>
 
         <!-- Daily Summary (Shows after 6 PM) -->
@@ -907,10 +944,12 @@
                 <div class="form-group">
                     <label>Title *</label>
                     <input type="text" id="title" required placeholder="Enter task title">
+                    <div id="titleWarning" class="validation-warning"></div>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
                     <textarea id="description" placeholder="Add task description (optional)"></textarea>
+                    <div id="descriptionWarning" class="validation-warning"></div>
                 </div>
                 <div class="form-group">
                     <label>Priority</label>
@@ -923,6 +962,7 @@
                 <div class="form-group">
                     <label>Due Date</label>
                     <input type="datetime-local" id="due_date">
+                    <div id="dueDateWarning" class="validation-warning"></div>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeTaskModal()">Cancel</button>
@@ -936,6 +976,77 @@
 
     <script>
         const API_URL = '/api/tasks/';
+
+        // Real-time validation for task title
+        document.getElementById('title').addEventListener('input', function (e) {
+            const value = e.target.value;
+            const warning = document.getElementById('titleWarning');
+
+            warning.classList.remove('show');
+            e.target.classList.remove('invalid', 'valid');
+
+            if (!value || !value.trim()) {
+                warning.textContent = 'Task title is required';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+                return;
+            }
+
+            if (value.trim().length < 3) {
+                warning.textContent = 'Task title must be at least 3 characters long';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+            } else if (value.length > 255) {
+                warning.textContent = 'Task title cannot exceed 255 characters';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+            } else if (!/[a-zA-Z0-9]/.test(value)) {
+                warning.textContent = 'Task title must contain at least one letter or number';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+            } else {
+                e.target.classList.add('valid');
+            }
+        });
+
+        // Real-time validation for description
+        document.getElementById('description').addEventListener('input', function (e) {
+            const value = e.target.value;
+            const warning = document.getElementById('descriptionWarning');
+
+            warning.classList.remove('show');
+            e.target.classList.remove('invalid', 'valid');
+
+            if (value && value.length > 5000) {
+                warning.textContent = 'Task description cannot exceed 5000 characters';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+            } else if (value && value.trim()) {
+                e.target.classList.add('valid');
+            }
+        });
+
+        // Real-time validation for due date
+        document.getElementById('due_date').addEventListener('change', function (e) {
+            const value = e.target.value;
+            const warning = document.getElementById('dueDateWarning');
+
+            warning.classList.remove('show');
+            e.target.classList.remove('invalid', 'valid');
+
+            if (value) {
+                const selectedDate = new Date(value);
+                const now = new Date();
+
+                if (selectedDate < now) {
+                    warning.textContent = 'Due date cannot be in the past';
+                    warning.classList.add('show');
+                    e.target.classList.add('invalid');
+                } else {
+                    e.target.classList.add('valid');
+                }
+            }
+        });
 
         // Helper function to calculate ISO week number (must be defined first)
         function getWeekNumber(date) {
@@ -1262,7 +1373,38 @@
 
         function loadUserInfo() {
             const username = localStorage.getItem('username') || 'User';
-            document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+
+            // Load user profile to get first name and profile image
+            loadUserProfile();
+        }
+
+        async function loadUserProfile() {
+            try {
+                const response = await fetch('/api/auth/profile/', {
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    const firstName = user.first_name || user.username;
+                    document.getElementById('welcomeMessage').innerHTML = `Welcome, <span class="user-name">${firstName}</span>`;
+
+                    // Update avatar with profile image or initial
+                    const userAvatar = document.getElementById('userAvatar');
+                    if (user.profile_image) {
+                        userAvatar.innerHTML = `<img src="${user.profile_image}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" alt="Profile">`;
+                    } else {
+                        const username = user.username || localStorage.getItem('username') || 'User';
+                        userAvatar.textContent = username.charAt(0).toUpperCase();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                // Fallback to username from localStorage
+                const username = localStorage.getItem('username') || 'User';
+                document.getElementById('welcomeMessage').innerHTML = `Welcome, <span class="user-name">${username}</span>`;
+                document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+            }
         }
 
         function openTaskModal() {

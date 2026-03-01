@@ -1,4 +1,4 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.response import Response
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -44,6 +44,26 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Override create to provide better error handling
+        """
+        serializer = self.get_serializer(data=request.data)
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response({
+                'message': 'Task created successfully',
+                'task': serializer.data
+            }, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            return Response({
+                'error': 'Failed to create task',
+                'details': serializer.errors if hasattr(serializer, 'errors') else str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -52,6 +72,28 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Task.objects.filter(user=self.request.user)
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Override update to provide better error handling
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            
+            return Response({
+                'message': 'Task updated successfully',
+                'task': serializer.data
+            })
+        except Exception as e:
+            return Response({
+                'error': 'Failed to update task',
+                'details': serializer.errors if hasattr(serializer, 'errors') else str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TaskSummaryView(generics.GenericAPIView):

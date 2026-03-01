@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer, UserPreferencesSerializer
+from .serializers import RegisterSerializer, LoginSerializer, UserSerializer, UserProfileSerializer, UserPreferencesSerializer
 from .models import UserPreferences
 
 
@@ -16,17 +16,59 @@ class RegisterView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
         
-        refresh = RefreshToken.for_user(user)
+        try:
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'user': UserSerializer(user, context={'request': request}).data,
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'message': 'User registered successfully'
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                'error': 'Registration failed',
+                'details': serializer.errors if hasattr(serializer, 'errors') else str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginView(APIView):
+    """
+    Custom login view with validation
+    """
+    permission_classes = (AllowAny,)
+    serializer_class = LoginSerializer
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
         
-        return Response({
-            'user': UserSerializer(user, context={'request': request}).data,
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'message': 'User registered successfully'
-        }, status=status.HTTP_201_CREATED)
+        try:
+            serializer.is_valid(raise_exception=True)
+            user = serializer.validated_data['user']
+            
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
+                },
+                'message': 'Login successful'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'error': 'Login failed',
+                'details': serializer.errors if hasattr(serializer, 'errors') else str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserProfileView(generics.RetrieveUpdateAPIView):

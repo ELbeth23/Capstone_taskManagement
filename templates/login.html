@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Task Manager</title>
+    <title>Login - TaskFlow</title>
     {% include 'dark-mode.html' %}
     <style>
         * {
@@ -126,6 +126,37 @@
         .welcome p {
             color: #666;
         }
+
+        /* Validation Warning Styles */
+        .validation-warning {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .validation-warning.show {
+            display: block;
+        }
+
+        input.invalid {
+            border-color: #e74c3c;
+        }
+
+        input.valid {
+            border-color: #27ae60;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
@@ -137,12 +168,14 @@
         <div id="message" class="message"></div>
         <form id="loginForm">
             <div class="form-group">
-                <label>Username</label>
+                <label>Username *</label>
                 <input type="text" id="username" required>
+                <div id="usernameWarning" class="validation-warning"></div>
             </div>
             <div class="form-group">
-                <label>Password</label>
+                <label>Password *</label>
                 <input type="password" id="password" required>
+                <div id="passwordWarning" class="validation-warning"></div>
             </div>
             <button type="submit">Login</button>
         </form>
@@ -156,6 +189,54 @@
     </div>
 
     <script>
+        // Real-time validation for username
+        document.getElementById('username').addEventListener('input', function (e) {
+            const value = e.target.value;
+            const warning = document.getElementById('usernameWarning');
+
+            warning.classList.remove('show');
+            e.target.classList.remove('invalid', 'valid');
+
+            if (!value) {
+                warning.textContent = 'Username is required';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+                return;
+            }
+
+            if (value.length < 3) {
+                warning.textContent = 'Username must be at least 3 characters long';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+            } else {
+                e.target.classList.add('valid');
+            }
+        });
+
+        // Real-time validation for password
+        document.getElementById('password').addEventListener('input', function (e) {
+            const value = e.target.value;
+            const warning = document.getElementById('passwordWarning');
+
+            warning.classList.remove('show');
+            e.target.classList.remove('invalid', 'valid');
+
+            if (!value) {
+                warning.textContent = 'Password is required';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+                return;
+            }
+
+            if (value.length < 8) {
+                warning.textContent = 'Password must be at least 8 characters long';
+                warning.classList.add('show');
+                e.target.classList.add('invalid');
+            } else {
+                e.target.classList.add('valid');
+            }
+        });
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -180,7 +261,20 @@
                     showMessage('Login successful! Redirecting...', 'success');
                     setTimeout(() => window.location.href = '/dashboard', 1500);
                 } else {
-                    showMessage('Invalid username or password', 'error');
+                    // Display backend validation errors
+                    if (result.details) {
+                        const errors = [];
+                        for (const [field, messages] of Object.entries(result.details)) {
+                            if (Array.isArray(messages)) {
+                                errors.push(...messages);
+                            } else {
+                                errors.push(messages);
+                            }
+                        }
+                        showMessage(errors.join('. '), 'error');
+                    } else {
+                        showMessage(result.error || 'Invalid username or password', 'error');
+                    }
                 }
             } catch (error) {
                 showMessage('Login failed. Please try again.', 'error');
